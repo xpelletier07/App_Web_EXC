@@ -151,8 +151,12 @@ app.delete('/api/quizzes/:id/questions/:questionId', (req, res) => {
 // Créer une partie sur un questionnaire (animateur).
 app.post('/api/games', (req, res) => {
   const quizId = Number(req.body?.quizId);
-  if (!repository.getQuizWithQuestions(quizId)) {
+  const quiz = repository.getQuizWithQuestions(quizId);
+  if (!quiz) {
     return res.status(404).json({ error: 'Questionnaire introuvable.' });
+  }
+  if (quiz.questions.length === 0) {
+    return res.status(400).json({ error: 'Le questionnaire doit contenir au moins une question.' });
   }
   const game = createGame(quizId);
   res.status(201).json({ code: game.code });
