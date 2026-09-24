@@ -44,35 +44,30 @@ test("bonne réponse après l’échéance = 0", () => {
 //
 // Remplacez chaque test.todo par un vrai test.
 
-test("réponse exactement à l’échéance = 5 (acceptée, bonus rapidité 0)", () => {
-	assert.equal(score({ responseTimeMs: 20000 }), 5);
+test('réponse exactement à l’échéance = 5 (acceptée, bonus rapidité 0)', () => {
+  assert.equal(score({ responseTimeMs: 20000 }), 5);
 });
-test("mauvaise réponse, même première et instantanée = 0", () => {
-	assert.equal(
-		score({
-			isCorrect: false,
-			isFirstCorrectAnswer: true,
-			responseTimeMs: 0,
-		}),
-		0,
-	);
+
+test('mauvaise réponse, même première et instantanée = 0', () => {
+  assert.equal(score({ isCorrect: false, isFirstCorrectAnswer: true }), 0);
 });
-test("première bonne réponse hors délai = 0 (pas de bonus)", () => {
-	assert.equal(
-		score({ isFirstCorrectAnswer: true, responseTimeMs: 25000 }),
-		0,
-	);
+
+test('première bonne réponse hors délai = 0 (pas de bonus)', () => {
+  assert.equal(score({ responseTimeMs: 20001, isFirstCorrectAnswer: true }), 0);
 });
-test("le bonus de rapidité ne dépasse jamais 3", () => {
-	const scoreInstantane = score({ responseTimeMs: 0 });
-	const scoreRapide = score({ responseTimeMs: 1000 });
-	// Sans être la première réponse, le score maximum est 5 + 3 = 8.
-	assert.ok(scoreInstantane <= 8);
-	assert.ok(scoreRapide <= 8);
+
+test('le bonus de rapidité ne dépasse jamais 3', () => {
+  for (const responseTimeMs of [0, 1, 1000, 6666, 6667, 13333, 19999]) {
+    assert.ok(score({ responseTimeMs }) - 5 <= 3, `temps ${responseTimeMs}`);
+  }
 });
-test("le résultat est toujours un entier de 0 à 10", () => {
-	const result = score({ responseTimeMs: 15000 });
-	assert.equal(Number.isInteger(result), true);
-	assert.ok(result >= 0);
-	assert.ok(result <= 10);
+
+test('le résultat est toujours un entier de 0 à 10', () => {
+  for (let responseTimeMs = 0; responseTimeMs <= 25000; responseTimeMs += 500) {
+    for (const isFirstCorrectAnswer of [false, true]) {
+      const points = score({ responseTimeMs, isFirstCorrectAnswer });
+      assert.ok(Number.isInteger(points), `temps ${responseTimeMs}`);
+      assert.ok(points >= 0 && points <= 10, `temps ${responseTimeMs} : ${points}`);
+    }
+  }
 });
