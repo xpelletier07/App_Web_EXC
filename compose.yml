@@ -1,17 +1,48 @@
 # Quiz M9 d'une seule commande : docker compose up --build
 #
-# Deux services (deux conteneurs) sur un réseau privé où chacun joint l'autre
-# par son NOM : le client appelle l'API à http://api:3000.
+# Trois services (trois conteneurs) sur un réseau privé où chacun joint les
+# autres par leur NOM : l'API parle à postgres:5432, le client à api:3000.
+#
+# En développement, on ne démarre que la base :  docker compose up -d postgres
+# puis `npm run dev` comme avant ; l'API la joint sur localhost:5432.
 
 services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: quizm9
+      POSTGRES_PASSWORD: quizm9
+      POSTGRES_DB: quizm9
+    ports:
+      # 127.0.0.1 : la base n'est joignable que de ce poste, pas du réseau.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      # Les fichiers de la base vivent ici, PAS dans le conteneur : ils
+      # survivent à docker compose down, et à la destruction du conteneur.
+      - quizm9-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # « Prêt » veut dire : accepte des connexions, pas seulement démarré.
+      test: ["CMD-SHELL", "pg_isready -U quizm9"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
   api:
     build:
       context: .
       dockerfile: server/Dockerfile
     ports:
       - "3000:3000"
-    volumes:
-      - quizm9-data:/data
+    environment:
+      DATABASE_URL: postgres://quizm9:quizm9@postgres:5432/quizm9
+    # Les secrets (GitHub, session) viennent du même fichier qu'en
+    # développement ; il n'est pas versionné.
+    env_file:
+      - path: server/.env
+        required: false
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   client:
     build:
@@ -25,6 +56,4 @@ services:
       - api
 
 volumes:
-  # Le fichier SQLite vit ici, PAS dans le conteneur : il survit à
-  # docker compose down, et à la destruction du conteneur api.
-  quizm9-data:
+  quizm9-pgdata:

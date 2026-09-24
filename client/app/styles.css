@@ -243,3 +243,33 @@ button:disabled {
 button.secondary {
   background: #667;
 }
+
+/* La barre de navigation : le compte connecté, à droite. */
+.topnav .account {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #cfd4f2;
+}
+
+.topnav .account img {
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 50%;
+}
+
+.topnav form {
+  display: inline;
+}
+
+.topnav button.link {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #cfd4f2;
+  font: inherit;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: underline;
+}
