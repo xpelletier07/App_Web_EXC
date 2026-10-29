@@ -12,7 +12,7 @@ import Leaderboard from '../components/Leaderboard.jsx';
 export default function Lobby() {
   const { code } = useParams();
   const navigate = useNavigate();
-  const game = useGame(code);
+  const { game, chat, sendMessage } = useGame(code);
   const [session, setSession] = useState(null);
   const [error, setError] = useState(null);
 
