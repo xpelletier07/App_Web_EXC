@@ -1,20 +1,35 @@
-# Quiz M9 sur un serveur où il n'y a QUE Docker : ni Node, ni le code source.
-# Les images viennent du registre, construites par l'intégration continue.
-#
-#   cp .env.example .env      puis mettre son compte GitHub dans OWNER
-#   docker compose pull       télécharge les images demandées par TAG
-#   docker compose up -d      démarre (ou remplace) les conteneurs
-#
-# TAG=latest suit chaque push sur main. TAG=sha-xxxxxxx épingle une version :
-# la prod ne change plus tant qu'on ne change pas cette ligne.
+# Quiz M9 sur une machine où il n'y a que Docker : pas de code source, pas
+# de build. Les images viennent du registre ; les valeurs propres à la
+# machine viennent d'un fichier .env posé à côté (voir .env.example).
 
 services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: quizm9
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: quizm9
+    # Pas de ports : seule l'API, sur le réseau privé, parle à la base.
+    volumes:
+      - quizm9-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U quizm9"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
   api:
     image: ghcr.io/${OWNER}/quizm9-api:${TAG:-latest}
     ports:
       - "3000:3000"
-    volumes:
-      - quizm9-data:/data
+    environment:
+      DATABASE_URL: postgres://quizm9:${POSTGRES_PASSWORD}@postgres:5432/quizm9
+      SESSION_SECRET: ${SESSION_SECRET}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
 
   client:
     image: ghcr.io/${OWNER}/quizm9-client:${TAG:-latest}
@@ -26,4 +41,4 @@ services:
       - api
 
 volumes:
-  quizm9-data:
+  quizm9-pgdata:
