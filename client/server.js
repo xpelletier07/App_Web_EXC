@@ -15,17 +15,24 @@ const port = process.env.PORT ?? 5173;
 const app = express();
 
 // Le relais : le navigateur appelle /api/... sur CE serveur, qui transmet à
-// Express tel quel (méthode, corps, réponse) et renvoie ce qu'il répond.
+// Express tel quel (méthode, corps, cookie, réponse) et renvoie ce qu'il
+// répond. Le cookie de session part avec la requête et revient avec la
+// réponse (Set-Cookie) : pour le navigateur, l'API et les pages sont un
+// seul et même site.
 app.use('/api', express.raw({ type: '*/*' }), async (req, res) => {
-  const init = { method: req.method, headers: {} };
+  const init = { method: req.method, headers: {}, redirect: 'manual' };
+  if (req.get('cookie')) init.headers.cookie = req.get('cookie');
   if (req.method !== 'GET' && req.method !== 'HEAD') {
     init.headers['content-type'] = req.get('content-type') ?? 'application/json';
     init.body = req.body;
   }
   const upstream = await fetch(`${API_URL}/api${req.url}`, init);
   res.status(upstream.status);
-  const contentType = upstream.headers.get('content-type');
-  if (contentType) res.set('content-type', contentType);
+  for (const name of ['content-type', 'location']) {
+    if (upstream.headers.has(name)) res.set(name, upstream.headers.get(name));
+  }
+  const cookies = upstream.headers.getSetCookie();
+  if (cookies.length > 0) res.set('set-cookie', cookies);
   res.send(Buffer.from(await upstream.arrayBuffer()));
 });
 

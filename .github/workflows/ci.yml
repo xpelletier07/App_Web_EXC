@@ -1,8 +1,8 @@
 # L'intégration continue de Quiz M9. GitHub exécute ce fichier à chaque push.
 #
 # Deux travaux (jobs), chacun sur une machine neuve :
-#   test   installe le projet et lance `npm test`. Rouge : le push a cassé
-#          quelque chose.
+#   test   démarre un PostgreSQL à côté, installe le projet et lance
+#          `npm test`. Rouge : le push a cassé quelque chose.
 #   image  construit les deux images Docker et les publie dans le registre
 #          de GitHub (ghcr.io). Il ne tourne que si `test` a réussi, et
 #          seulement sur la branche main : une régression ne produit jamais
@@ -16,6 +16,25 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+
+    # Un conteneur de service : le même postgres:17 que compose.yml, démarré
+    # avant les steps et joignable sur localhost:5432. Les tests créent leurs
+    # bases temporaires dedans.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: quizm9
+          POSTGRES_PASSWORD: quizm9
+          POSTGRES_DB: quizm9
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U quizm9"
+          --health-interval 2s
+          --health-timeout 5s
+          --health-retries 15
+
     steps:
       - uses: actions/checkout@v7
 
@@ -27,6 +46,8 @@ jobs:
       # Ce qu'un coéquipier ferait sur une machine vide.
       - run: npm ci
       - run: npm test
+        env:
+          DATABASE_URL: postgres://quizm9:quizm9@localhost:5432/quizm9
 
   image:
     needs: test
