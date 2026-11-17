@@ -44,7 +44,7 @@ jobs:
           cache: npm
 
       # Ce qu'un coéquipier ferait sur une machine vide.
-      - run: npm ci
+      - run: npm ci --foreground-scripts
       - run: npm test
         env:
           DATABASE_URL: postgres://quizm9:quizm9@localhost:5432/quizm9
